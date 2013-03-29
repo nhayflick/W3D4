@@ -132,10 +132,8 @@ class Question
         SQL
     qid = QuestionsDatabase.instance.execute(sql)[0]['number']
     Question.find(qid)
-      qid = QuestionsDatabase.instance.execute(sql)[0]['number']
-      Question.find(qid)
-    end
-
+    qid = QuestionsDatabase.instance.execute(sql)[0]['number']
+    Question.find(qid)
   end
 
   def followers
@@ -163,7 +161,6 @@ class Question
     data = (QuestionsDatabase.instance.execute(sql))[0]
     Question.find(data["question"])
   end
-
 end
 
 class Reply
@@ -179,10 +176,10 @@ class Reply
     reply = (QuestionsDatabase.instance.execute(sql, reply_id))[0]
     self.build_reply(reply)
   end
+
   def self.build_reply(reply)
     Reply.new(reply["reply_id"], reply["question_id"], reply["reply_author"], reply["body"], reply["parent_id"])
   end
-end
 
   def initialize(reply_id, question_id, reply_author, body, parent_id)
     @reply_id = reply_id
@@ -215,18 +212,3 @@ end
 
 end
 
-
-# class Like
-#   # def self.create(user_id, question_id)
-# #     sql = <<-SQL
-# #       INSERT INTO question_likes ('question_id', 'user_id') VALUES (#{question_id}, #{user_id})
-# #     SQL
-# #     QuestionsDatabase.instance.execute(sql)
-# #   end
-
-#   # def self.delete(user_id, question_id)
-#   #   QuestionsDatabase.instance.execute("DELETE FROM question_likes WHERE question_id = #{question_id} AND user_id = #{user_id}")
-#   # end
-
-
-# end
