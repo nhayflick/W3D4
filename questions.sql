@@ -26,6 +26,7 @@ CREATE TABLE question_replies (
   question_id INTEGER NOT NULL,
   reply_author INTEGER NOT NULL,
   body VARCHAR(255) NOT NULL,
+  parent_id INTEGER,
   FOREIGN KEY(question_id) REFERENCES questions(question_id),
   FOREIGN KEY(reply_author) REFERENCES users(user_id)
 );
@@ -46,17 +47,41 @@ CREATE TABLE question_likes (
   FOREIGN KEY(user_id) REFERENCES users(user_id)
 );
 
-INSERT INTO users ('first_name', 'last_name', 'is_instructor')
-  VALUES ('Nederick', 'R', 1), ('Ryan', 'Seepppaassiii', 1) , ('Mill', 'Man', 0);
+INSERT INTO users ("first_name", "last_name", "is_instructor")
+  VALUES ("Nederick", "R", 1);
+
+INSERT INTO users ("first_name", "last_name", "is_instructor")
+  VALUES ("Ryan", "Seepppaassiii", 1);
+
+INSERT INTO users ("first_name", "last_name", "is_instructor")
+  VALUES ("Mill", "Man", 0);
 
 INSERT INTO questions('body', 'title', 'author')
-  VALUES ('Why is the sky blue?', 'Sky', 1), ('How do you know someone is vegan?', 'Sky', 2), ('How do I defeat Ro Man?', 'Conquest', 3);
+  VALUES ('Why is the sky blue?', 'Sky', 1);
 
-INSERT INTO question_replies('body', 'question_id', 'reply_author')
-  VALUES ('You cannot defeat him!', 3, 1), ('Because science', 1, 2),
-          ('He will tell you.', 2, 3), ('Yeah he will def tell you', 2, 1);
+INSERT INTO questions('body', 'title', 'author')
+  VALUES('How do you know someone is vegan?', 'Sky', 2);
+
+INSERT INTO questions('body', 'title', 'author')
+  VALUES ('How do I defeat Ro Man?', 'Conquest', 3);
+
+INSERT INTO question_replies('body', 'question_id', 'reply_author', 'parent_id')
+  VALUES ('You cannot defeat him!', 3, 1, null);
+
+INSERT INTO question_replies('body', 'question_id', 'reply_author', 'parent_id')
+  VALUES ('Because science', 1, 2, null);
+
+INSERT INTO question_replies('body', 'question_id', 'reply_author', 'parent_id')
+  VALUES('He will tell you.', 2, 3, null);
+
+INSERT INTO question_replies('body', 'question_id', 'reply_author', 'parent_id')
+  VALUES('Yeah he will def tell you', 2, 1, 3);
 
 INSERT INTO question_likes ('question_id', 'user_id')
-VALUES (3, 1), (3, 2), (3, 3 );
+VALUES (3, 1);
 
+INSERT INTO question_likes ('question_id', 'user_id')
+VALUES(3, 2);
 
+INSERT INTO question_likes ('question_id', 'user_id')
+VALUES(3, 3 );
