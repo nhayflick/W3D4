@@ -123,7 +123,7 @@ class Question
 
   def self.most_liked
     #returns the most liked question
-    sql = <<-SQL
+      sql = <<-SQL
         SELECT count(q.question_id) number FROM question_likes ql
         JOIN questions q ON q.question_id = ql.question_id
         GROUP BY q.question_id
@@ -132,6 +132,10 @@ class Question
         SQL
     qid = QuestionsDatabase.instance.execute(sql)[0]['number']
     Question.find(qid)
+      qid = QuestionsDatabase.instance.execute(sql)[0]['number']
+      Question.find(qid)
+    end
+
   end
 
   def followers
@@ -175,10 +179,10 @@ class Reply
     reply = (QuestionsDatabase.instance.execute(sql, reply_id))[0]
     self.build_reply(reply)
   end
-
   def self.build_reply(reply)
     Reply.new(reply["reply_id"], reply["question_id"], reply["reply_author"], reply["body"], reply["parent_id"])
   end
+end
 
   def initialize(reply_id, question_id, reply_author, body, parent_id)
     @reply_id = reply_id
