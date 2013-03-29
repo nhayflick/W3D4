@@ -8,23 +8,21 @@ class QuestionsDatabase < SQLite3::Database
     self.results_as_hash = true
     self.type_translation = true
   end
-
-  def get_users
-
-  end
 end
 
 class User
-  def initialize(fname, lname, is_instructor, user_id = nil)
-    @user_id    = user_id
-    @fname = fname
-    @lname = lname
-    @is_instructor = is_instructor
-  end
 
-  def self.find(id)
-    data = ( QuestionsDatabase.instance.execute (
-    "SELECT * FROM users WHERE user_id = #{id}" ) )[0]
+  attr_accessor :fname, :lname, :is_instructor
+
+  def self.find(user_id)
+    sql = <<-SQL
+    SELECT *
+    FROM users
+    WHERE user_id = #{user_id}
+    SQL
+
+    data = (QuestionsDatabase.instance.execute(sql))[0]
+
     User.new(
     data['first_name'],
     data['last_name'],
@@ -33,24 +31,30 @@ class User
     )
   end
 
+
+  def initialize(fname, lname, is_instructor, user_id = nil)
+    @user_id    = user_id
+    @fname = fname
+    @lname = lname
+    @is_instructor = is_instructor
+  end
+
   def asked_questions
-    questions = (QuestionsDatabase.instance.execute("SELECT * FROM questions JOIN users ON author=user_id WHERE author = #{@user_id}"))
+    questions = (QuestionsDatabase.instance.execute(
+    "SELECT *
+    FROM questions
+    JOIN users ON author=user_id
+    WHERE author = #{@user_id})")
     questions.map {|question| Question.build_question(question) }
   end
 
   def average_karma
     sql = <<-SQL
-      SELECT (COUNT(ql.user_id))/(COUNT (DISTINCT ql.question_id)) FROM questions q JOIN question_likes ql    ON q.question_id = ql.question_id WHERE q.author = ?;
+      SELECT (COUNT(ql.user_id))/(COUNT (DISTINCT ql.question_id))
+      FROM questions q JOIN question_likes ql ON q.question_id = ql.question_id
+      WHERE q.author = ?
     SQL
     QuestionsDatabase.instance.execute(sql, @user_id)[0].values.first
-  end
-
-  def like_question(question_id)
-    Like.create(@user_id, question_id)
-  end
-
-  def unlike_question(question_id)
-    Like.delete(@user_id, question_id)
   end
 
   def most_karma
@@ -73,44 +77,66 @@ class User
       QuestionsDatabase.instance.execute(sql, @fname, @lname, @is_instructor, @user_id)
     else
       sql = <<-SQL
-        INSERT INTO users
-        ('first_name', 'last_name', 'is_instructor')
+        INSERT INTO users ('first_name', 'last_name', 'is_instructor')
         VALUES (?, ?, ?)
       SQL
       QuestionsDatabase.instance.execute(sql, @fname, @lname, @is_instructor)
       @user_id = QuestionsDatabase.instance.last_insert_row_id
     end
   end
-
-
 end
 
 class Question
+
+  attr_accessor :body, :title, :author_id
+
   def self.find(question_id)
-    question = (QuestionsDatabase.instance.execute ("SELECT  * FROM questions JOIN users ON author=user_id WHERE question_id = #{question_id}"))[0]
+    question = (QuestionsDatabase.instance.execute(sql, question_id)), 0
+    sql = <<-SQL
+    SELECT  *
+    FROM questions
+    WHERE question_id = ?
+    SQL
     self.build_question(question)
   end
 
   def self.build_question(question)
-    Question.new(question['body'], question['title'], question['question_id'], question['first_name'] + ' ' + question['last_name'])
+    Question.new(question['body'], question['title'], question['question_id'], question['author_id'])
   end
 
-  def initialize(body, title, question_id, author)
+  def initialize(body, title, question_id, author_id)
+    @question_id = question_id
     @body = body
     @title = title
-    @question_id = question_id
-    @author = author
+    @author_id = author_id
   end
 
   def num_likes
-    Like.question_count(@question_id)
+    sql = <<-QUERY
+      SELECT COUNT(user_id)
+      FROM question_likes
+      WHERE question_id = ?
+      QUERY
+    QuestionsDatabase.instance.execute(sql, question_id)
   end
 
   def self.most_liked
-    Like.most_liked
+    #returns the most liked question
+      sql = <<-SQL
+        SELECT count(q.question_id) number FROM question_likes ql
+        JOIN questions q ON q.question_id = ql.question_id
+        GROUP BY q.question_id
+        ORDER BY count(q.question_id) desc
+        LIMIT 1
+        SQL
+      qid = QuestionsDatabase.instance.execute(sql)[0]['number']
+      Question.find(qid)
+    end
+
   end
 
   def followers
+    #returns all users following this question
     sql = <<-SQL
       SELECT follower FROM question_followers
       WHERE question = ?
@@ -124,6 +150,7 @@ class Question
   end
 
   def self.most_followed
+    #returns the most_followed_question
     sql = <<-SQL
       SELECT question, count(follower) FROM question_followers
       GROUP BY question
@@ -137,42 +164,33 @@ class Question
 end
 
 class Reply
+  def self.find(reply_id)
+    sql = <<-SQL
+    SELECT  *
+    FROM question_replies
+    WHERE question_id = ?
+    SQL
+    reply = (QuestionsDatabase.instance.execute(sql, reply_id))[0]
+    self.build_reply(reply)
+  end
 
+  def build_reply(reply)
+    Reply.new(reply["question_id"], reply["reply_author"], reply["body"], reply["parent_id"])
+  end
 end
 
-class Actions
-
-end
 
 class Like
-  def self.create(user_id, question_id)
-    sql = <<-SQL
-      INSERT INTO question_likes ('question_id', 'user_id') VALUES (#{question_id}, #{user_id})
-    SQL
-    QuestionsDatabase.instance.execute(sql)
-  end
+  # def self.create(user_id, question_id)
+#     sql = <<-SQL
+#       INSERT INTO question_likes ('question_id', 'user_id') VALUES (#{question_id}, #{user_id})
+#     SQL
+#     QuestionsDatabase.instance.execute(sql)
+#   end
 
-  def self.delete(user_id, question_id)
-    QuestionsDatabase.instance.execute("DELETE FROM question_likes WHERE question_id = #{question_id} AND user_id = #{user_id}")
-  end
+  # def self.delete(user_id, question_id)
+  #   QuestionsDatabase.instance.execute("DELETE FROM question_likes WHERE question_id = #{question_id} AND user_id = #{user_id}")
+  # end
 
-  def self.question_count(question_id)
-    sql = <<-QUERY
-    SELECT COUNT(user_id) FROM question_likes WHERE question_id = (?)
-    QUERY
-    QuestionsDatabase.instance.execute(sql, question_id)
-  end
 
-  def self.most_liked
-    sql = <<-QUERY
-    SELECT count(q.question_id) number FROM question_likes ql
-    JOIN questions q ON q.question_id = ql.question_id
-    GROUP BY q.question_id
-    ORDER BY count(q.question_id) desc
-    LIMIT 1
-
-    QUERY
-    qid = QuestionsDatabase.instance.execute(sql)[0]['number']
-    Question.find(qid)
-  end
 end

@@ -26,6 +26,7 @@ CREATE TABLE question_replies (
   question_id INTEGER NOT NULL,
   reply_author INTEGER NOT NULL,
   body VARCHAR(255) NOT NULL,
+  parent_id INTEGER,
   FOREIGN KEY(question_id) REFERENCES questions(question_id),
   FOREIGN KEY(reply_author) REFERENCES users(user_id)
 );
